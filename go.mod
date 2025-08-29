@@ -8,7 +8,9 @@ require (
 	github.com/gin-gonic/gin v1.7.7
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/joho/godotenv v1.4.0
+	github.com/lib/pq v1.10.3
 	github.com/minio/minio-go/v7 v7.0.23
+	github.com/stretchr/testify v1.8.0
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 )
 

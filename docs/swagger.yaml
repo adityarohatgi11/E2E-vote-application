@@ -117,14 +117,11 @@ definitions:
     type: object
 info:
   contact:
-    email: support@swagger.io
-    name: VoteEngine
-    url: http://www.swagger.io/support
+    name: VoteEngine API
   description: VoteEngine voting and venue discovery api
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: http://swagger.io/terms/
   title: VoteEngine
   version: "1.0"
 paths:
