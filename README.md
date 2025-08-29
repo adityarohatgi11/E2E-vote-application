@@ -1,7 +1,7 @@
-# Snapp Voting
+# VoteEngine
 
 ## Introduction 
-Simple high-performance Voting API backend built with Go and PostgreSQL.
+High-performance voting and venue discovery API backend built with Go and PostgreSQL.
 
 ## Features
 - JWT Authentication: Securely authenticate users and protect your endpoints.
@@ -59,4 +59,4 @@ This project is licensed under the MIT License.
 
 ---
 
-Happy Voting!
+Happy Voting with VoteEngine!

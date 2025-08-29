@@ -1,8 +1,8 @@
 {
     "swagger": "2.0",
     "info": {
-      "description": "Snapp voting api",
-      "title": "Snapp Voting",
+      "description": "VoteEngine voting and venue discovery api",
+      "title": "VoteEngine",
       "termsOfService": "http://swagger.io/terms/",
       "contact": {
         "name": "Voting brought to you by Shashwat",
