@@ -1,14 +1,13 @@
 package services
 
 import (
-	"voting-app/app/models"
-	databases "voting-app/app"
-	"encoding/json"
+	"database/sql"
 	"fmt"
 	"math"
-	"net/http"
-	"strconv"
 	"time"
+	databases "voting-app/app"
+	"voting-app/app/models"
+
 	"github.com/getsentry/sentry-go"
 )
 
@@ -20,14 +19,14 @@ type GeolocationService struct {
 
 // LocationResult represents a geocoding result
 type LocationResult struct {
-	Address     string  `json:"address"`
-	Latitude    float64 `json:"latitude"`
-	Longitude   float64 `json:"longitude"`
-	City        string  `json:"city"`
-	State       string  `json:"state"`
-	Country     string  `json:"country"`
-	PostalCode  string  `json:"postalCode"`
-	Confidence  float64 `json:"confidence"` // 0-1 confidence score
+	Address    string  `json:"address"`
+	Latitude   float64 `json:"latitude"`
+	Longitude  float64 `json:"longitude"`
+	City       string  `json:"city"`
+	State      string  `json:"state"`
+	Country    string  `json:"country"`
+	PostalCode string  `json:"postalCode"`
+	Confidence float64 `json:"confidence"` // 0-1 confidence score
 }
 
 // NearbyResult represents venues near a location
@@ -64,7 +63,7 @@ func (gs *GeolocationService) Geocode(address string) (*LocationResult, error) {
 	if result != nil {
 		return result, nil
 	}
-	
+
 	// Fallback to external geocoding service
 	return gs.externalGeocode(address)
 }
@@ -75,13 +74,13 @@ func (gs *GeolocationService) ReverseGeocode(lat, lng float64) (*LocationResult,
 	if lat < -90 || lat > 90 || lng < -180 || lng > 180 {
 		return nil, fmt.Errorf("invalid coordinates")
 	}
-	
+
 	// Try local database first
 	result := gs.reverseGeocodeLocal(lat, lng)
 	if result != nil {
 		return result, nil
 	}
-	
+
 	// Fallback to external service
 	return gs.externalReverseGeocode(lat, lng)
 }
@@ -92,7 +91,7 @@ func (gs *GeolocationService) GetNearbyVenues(lat, lng, radiusKm float64, filter
 	if radiusKm <= 0 || radiusKm > 100 {
 		radiusKm = 10 // Default to 10km
 	}
-	
+
 	query := `
 		SELECT v.id, v.name, v.slug, v.short_description, v.address,
 			   v.latitude, v.longitude, v.category_id, v.subcategory_id,
@@ -113,51 +112,51 @@ func (gs *GeolocationService) GetNearbyVenues(lat, lng, radiusKm float64, filter
 			  ST_Point($1, $2)::geography,
 			  $3 * 1000
 		  )`
-	
+
 	args := []interface{}{lng, lat, radiusKm}
 	argCount := 3
-	
+
 	// Add filters
 	if categoryID, exists := filters["category_id"]; exists {
 		argCount++
 		query += fmt.Sprintf(" AND v.category_id = $%d", argCount)
 		args = append(args, categoryID)
 	}
-	
+
 	if minRating, exists := filters["min_rating"]; exists {
 		argCount++
 		query += fmt.Sprintf(" AND v.average_rating >= $%d", argCount)
 		args = append(args, minRating)
 	}
-	
+
 	if priceRange, exists := filters["price_range"]; exists {
 		argCount++
 		query += fmt.Sprintf(" AND v.price_range = $%d", argCount)
 		args = append(args, priceRange)
 	}
-	
+
 	if isOpen, exists := filters["is_open"]; exists && isOpen.(bool) {
 		// Add opening hours check (simplified)
 		currentHour := time.Now().Hour()
 		query += fmt.Sprintf(" AND (v.opening_hours IS NULL OR jsonb_path_exists(v.opening_hours, '$.*.open ? (@ <= \"%d:00\")'))", currentHour)
 	}
-	
+
 	query += " ORDER BY distance_km ASC, v.average_rating DESC LIMIT 50"
-	
+
 	rows, err := databases.PostgresDB.Query(query, args...)
 	if err != nil {
 		sentry.CaptureException(err)
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var venues []models.Venue
 	for rows.Next() {
 		var venue models.Venue
 		var distanceKm float64
 		var categoryName, cityName sql.NullString
 		var subcategoryID sql.NullInt64
-		
+
 		err := rows.Scan(
 			&venue.ID, &venue.Name, &venue.Slug, &venue.ShortDesc, &venue.Address,
 			&venue.Latitude, &venue.Longitude, &venue.CategoryID, &subcategoryID,
@@ -165,16 +164,16 @@ func (gs *GeolocationService) GetNearbyVenues(lat, lng, radiusKm float64, filter
 			&venue.CoverImage, &venue.IsFeatured, &distanceKm,
 			&categoryName, &cityName,
 		)
-		
+
 		if err != nil {
 			continue
 		}
-		
+
 		venue.Distance = &distanceKm
 		if subcategoryID.Valid {
 			venue.SubcategoryID = &subcategoryID.Int64
 		}
-		
+
 		// Set category and city info
 		if categoryName.Valid {
 			venue.Category = &models.VenueCategory{
@@ -188,10 +187,10 @@ func (gs *GeolocationService) GetNearbyVenues(lat, lng, radiusKm float64, filter
 				Name: cityName.String,
 			}
 		}
-		
+
 		venues = append(venues, venue)
 	}
-	
+
 	return &NearbyResult{
 		Venues:     venues,
 		UserLat:    lat,
@@ -204,19 +203,19 @@ func (gs *GeolocationService) GetNearbyVenues(lat, lng, radiusKm float64, filter
 // CalculateDistance calculates distance between two points
 func (gs *GeolocationService) CalculateDistance(lat1, lng1, lat2, lng2 float64) Distance {
 	const R = 6371000 // Earth radius in meters
-	
+
 	φ1 := lat1 * math.Pi / 180
 	φ2 := lat2 * math.Pi / 180
 	Δφ := (lat2 - lat1) * math.Pi / 180
 	Δλ := (lng2 - lng1) * math.Pi / 180
-	
+
 	a := math.Sin(Δφ/2)*math.Sin(Δφ/2) +
 		math.Cos(φ1)*math.Cos(φ2)*
-		math.Sin(Δλ/2)*math.Sin(Δλ/2)
+			math.Sin(Δλ/2)*math.Sin(Δλ/2)
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-	
+
 	meters := R * c
-	
+
 	return Distance{
 		Meters:     meters,
 		Kilometers: meters / 1000,
@@ -229,10 +228,10 @@ func (gs *GeolocationService) GetBounds(centerLat, centerLng, radiusKm float64) 
 	// Approximate degrees per kilometer
 	latDegPerKm := 1.0 / 111.0
 	lngDegPerKm := 1.0 / (111.0 * math.Cos(centerLat*math.Pi/180))
-	
+
 	latOffset := radiusKm * latDegPerKm
 	lngOffset := radiusKm * lngDegPerKm
-	
+
 	return LocationBounds{
 		NorthEast: LatLng{
 			Latitude:  centerLat + latOffset,
@@ -250,17 +249,17 @@ func (gs *GeolocationService) FindOptimalMeetingPoint(locations []LatLng, prefer
 	if len(locations) == 0 {
 		return nil, nil, fmt.Errorf("no locations provided")
 	}
-	
+
 	// Calculate centroid
 	var sumLat, sumLng float64
 	for _, loc := range locations {
 		sumLat += loc.Latitude
 		sumLng += loc.Longitude
 	}
-	
+
 	centerLat := sumLat / float64(len(locations))
 	centerLng := sumLng / float64(len(locations))
-	
+
 	// Calculate maximum distance from center to any point
 	maxDistance := 0.0
 	for _, loc := range locations {
@@ -269,13 +268,13 @@ func (gs *GeolocationService) FindOptimalMeetingPoint(locations []LatLng, prefer
 			maxDistance = distance.Kilometers
 		}
 	}
-	
+
 	// Add buffer to ensure all points are included
 	searchRadius := maxDistance * 1.2
 	if searchRadius < 5.0 {
 		searchRadius = 5.0 // Minimum 5km radius
 	}
-	
+
 	// Get reverse geocoding for the center point
 	centerLocation, err := gs.ReverseGeocode(centerLat, centerLng)
 	if err != nil {
@@ -285,7 +284,7 @@ func (gs *GeolocationService) FindOptimalMeetingPoint(locations []LatLng, prefer
 			Address:   fmt.Sprintf("%.6f, %.6f", centerLat, centerLng),
 		}
 	}
-	
+
 	// Find venues near the optimal meeting point
 	filters := make(map[string]interface{})
 	if categoryID, exists := preferences["category_id"]; exists {
@@ -294,13 +293,13 @@ func (gs *GeolocationService) FindOptimalMeetingPoint(locations []LatLng, prefer
 	if minRating, exists := preferences["min_rating"]; exists {
 		filters["min_rating"] = minRating
 	}
-	
+
 	nearbyResult, err := gs.GetNearbyVenues(centerLat, centerLng, searchRadius, filters)
 	var venues []models.Venue
 	if err == nil {
 		venues = nearbyResult.Venues
 	}
-	
+
 	return centerLocation, venues, nil
 }
 
@@ -313,34 +312,34 @@ func (gs *GeolocationService) GetVenuesInBounds(bounds LocationBounds, filters m
 		WHERE v.is_active = true
 		  AND v.latitude BETWEEN $1 AND $2
 		  AND v.longitude BETWEEN $3 AND $4`
-	
+
 	args := []interface{}{
 		bounds.SouthWest.Latitude, bounds.NorthEast.Latitude,
 		bounds.SouthWest.Longitude, bounds.NorthEast.Longitude,
 	}
 	argCount := 4
-	
+
 	// Add filters
 	if categoryID, exists := filters["category_id"]; exists {
 		argCount++
 		query += fmt.Sprintf(" AND v.category_id = $%d", argCount)
 		args = append(args, categoryID)
 	}
-	
+
 	if minRating, exists := filters["min_rating"]; exists {
 		argCount++
 		query += fmt.Sprintf(" AND v.average_rating >= $%d", argCount)
 		args = append(args, minRating)
 	}
-	
+
 	query += " ORDER BY v.average_rating DESC LIMIT 100"
-	
+
 	rows, err := databases.PostgresDB.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var venues []models.Venue
 	for rows.Next() {
 		var venue models.Venue
@@ -353,7 +352,7 @@ func (gs *GeolocationService) GetVenuesInBounds(bounds LocationBounds, filters m
 			venues = append(venues, venue)
 		}
 	}
-	
+
 	return venues, nil
 }
 
@@ -369,17 +368,17 @@ func (gs *GeolocationService) searchLocalLocations(address string) *LocationResu
 		  CASE WHEN LOWER(name) = LOWER($1) THEN 1 ELSE 2 END,
 		  name
 		LIMIT 1`
-	
+
 	row := databases.PostgresDB.QueryRow(query, "%"+address+"%")
-	
+
 	var name, state, country string
 	var lat, lng float64
-	
+
 	err := row.Scan(&name, &lat, &lng, &state, &country)
 	if err != nil {
 		return nil
 	}
-	
+
 	return &LocationResult{
 		Address:    fmt.Sprintf("%s, %s, %s", name, state, country),
 		Latitude:   lat,
@@ -402,17 +401,17 @@ func (gs *GeolocationService) reverseGeocodeLocal(lat, lng float64) *LocationRes
 		FROM cities
 		ORDER BY distance_km
 		LIMIT 1`
-	
+
 	row := databases.PostgresDB.QueryRow(query, lng, lat)
-	
+
 	var name, state, country string
 	var distance float64
-	
+
 	err := row.Scan(&name, &state, &country, &distance)
 	if err != nil || distance > 50 { // Only if within 50km
 		return nil
 	}
-	
+
 	return &LocationResult{
 		Address:    fmt.Sprintf("Near %s, %s, %s", name, state, country),
 		Latitude:   lat,
@@ -450,7 +449,7 @@ func (gs *GeolocationService) GetLocationSuggestions(query string, limit int) ([
 	if limit <= 0 || limit > 20 {
 		limit = 10
 	}
-	
+
 	dbQuery := `
 		SELECT name, state, country, latitude, longitude,
 			   similarity(name, $1) + similarity(state, $1) as score
@@ -458,18 +457,18 @@ func (gs *GeolocationService) GetLocationSuggestions(query string, limit int) ([
 		WHERE name ILIKE $2 OR state ILIKE $2
 		ORDER BY score DESC, name
 		LIMIT $3`
-	
+
 	rows, err := databases.PostgresDB.Query(dbQuery, query, "%"+query+"%", limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var suggestions []LocationResult
 	for rows.Next() {
 		var result LocationResult
 		var score float64
-		
+
 		err := rows.Scan(
 			&result.City, &result.State, &result.Country,
 			&result.Latitude, &result.Longitude, &score,
@@ -477,12 +476,12 @@ func (gs *GeolocationService) GetLocationSuggestions(query string, limit int) ([
 		if err != nil {
 			continue
 		}
-		
+
 		result.Address = fmt.Sprintf("%s, %s, %s", result.City, result.State, result.Country)
 		result.Confidence = math.Min(1.0, score)
-		
+
 		suggestions = append(suggestions, result)
 	}
-	
+
 	return suggestions, nil
 }

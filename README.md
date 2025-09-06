@@ -56,7 +56,3 @@ High-performance voting and venue discovery API backend built with Go and Postgr
 ## License
 This project is licensed under the MIT License.
 
-
----
-
-Happy Voting with VoteEngine!

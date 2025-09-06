@@ -1,11 +1,12 @@
 package models
 
 import (
-	databases "Svoting-app/app"
 	"database/sql"
 	"fmt"
-	"github.com/getsentry/sentry-go"
 	"time"
+	databases "voting-app/app"
+
+	"github.com/getsentry/sentry-go"
 )
 
 type Voting struct {

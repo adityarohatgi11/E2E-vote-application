@@ -1,9 +1,9 @@
 package models
 
 import (
-	databases "voting-app/app"
 	"database/sql"
 	"github.com/getsentry/sentry-go"
+	databases "voting-app/app"
 )
 
 type SnappUser struct {

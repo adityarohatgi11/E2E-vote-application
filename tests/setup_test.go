@@ -9,16 +9,13 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-	"time"
-	"voting-app/app/controllers"
-	"voting-app/app/middlewares"
-	"voting-app/app/models"
 	databases "voting-app/app"
-	
+	"voting-app/app/controllers"
+	"voting-app/app/models"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -32,8 +29,8 @@ type TestSuite struct {
 
 // TestData holds test fixtures
 type TestData struct {
-	TestUser1    models.SnapUser
-	TestUser2    models.SnapUser
+	TestUser1    models.SnappUser
+	TestUser2    models.SnappUser
 	TestCity     models.City
 	TestCategory models.VenueCategory
 	TestVenue1   models.Venue
@@ -50,17 +47,17 @@ func (suite *TestSuite) SetupSuite() {
 		// Fallback to local.env for testing
 		godotenv.Load("../local.env")
 	}
-	
+
 	// Set test environment
 	os.Setenv("GIN_MODE", "test")
 	gin.SetMode(gin.TestMode)
-	
+
 	// Setup test database connection
 	suite.setupTestDatabase()
-	
+
 	// Setup router with all routes
 	suite.setupRouter()
-	
+
 	// Create test data
 	suite.createTestData()
 }
@@ -84,24 +81,24 @@ func (suite *TestSuite) SetupTest() {
 func (suite *TestSuite) setupTestDatabase() {
 	// Use a separate test database
 	testDBName := "voting_app_test"
-	
+
 	// Connect to default database to create test database
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=postgres sslmode=disable",
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_PORT"),
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASS"))
-	
+
 	db, err := sql.Open("postgres", connStr)
 	suite.Require().NoError(err)
-	
+
 	// Create test database if it doesn't exist
 	_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", testDBName))
 	if err != nil {
 		// Database might already exist, which is fine
 	}
 	db.Close()
-	
+
 	// Connect to test database
 	testConnStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		os.Getenv("DB_HOST"),
@@ -109,13 +106,13 @@ func (suite *TestSuite) setupTestDatabase() {
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASS"),
 		testDBName)
-	
-	suite.db, err = sql.Open("postgres", connStr)
+
+	suite.db, err = sql.Open("postgres", testConnStr)
 	suite.Require().NoError(err)
-	
+
 	// Set the global database connection for the app
 	databases.PostgresDB = suite.db
-	
+
 	// Run enhanced migrations
 	suite.runEnhancedMigrations()
 }
@@ -136,7 +133,7 @@ func (suite *TestSuite) runEnhancedMigrations() {
 			is_active BOOLEAN DEFAULT true,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
-		
+
 		// Venue categories
 		`CREATE TABLE IF NOT EXISTS venue_categories (
 			id BIGSERIAL PRIMARY KEY,
@@ -146,7 +143,7 @@ func (suite *TestSuite) runEnhancedMigrations() {
 			is_active BOOLEAN DEFAULT true,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
-		
+
 		// Venue subcategories
 		`CREATE TABLE IF NOT EXISTS venue_subcategories (
 			id BIGSERIAL PRIMARY KEY,
@@ -156,13 +153,13 @@ func (suite *TestSuite) runEnhancedMigrations() {
 			is_active BOOLEAN DEFAULT true,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
-		
+
 		// Snapp users (from original schema)
 		`CREATE TABLE IF NOT EXISTS snapp_users (
 			id BIGSERIAL PRIMARY KEY,
 			snapp_id VARCHAR NOT NULL UNIQUE
 		)`,
-		
+
 		// Enhanced venues table
 		`CREATE TABLE IF NOT EXISTS venues (
 			id BIGSERIAL PRIMARY KEY,
@@ -197,7 +194,7 @@ func (suite *TestSuite) runEnhancedMigrations() {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
-		
+
 		// Venue reviews
 		`CREATE TABLE IF NOT EXISTS venue_reviews (
 			id BIGSERIAL PRIMARY KEY,
@@ -221,7 +218,7 @@ func (suite *TestSuite) runEnhancedMigrations() {
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			UNIQUE(venue_id, user_id)
 		)`,
-		
+
 		// Venue collections
 		`CREATE TABLE IF NOT EXISTS venue_collections (
 			id BIGSERIAL PRIMARY KEY,
@@ -233,7 +230,7 @@ func (suite *TestSuite) runEnhancedMigrations() {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
-		
+
 		// Venue collection items
 		`CREATE TABLE IF NOT EXISTS venue_collection_items (
 			id BIGSERIAL PRIMARY KEY,
@@ -243,7 +240,7 @@ func (suite *TestSuite) runEnhancedMigrations() {
 			added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			UNIQUE(collection_id, venue_id)
 		)`,
-		
+
 		// Venue checkins
 		`CREATE TABLE IF NOT EXISTS venue_checkins (
 			id BIGSERIAL PRIMARY KEY,
@@ -256,7 +253,7 @@ func (suite *TestSuite) runEnhancedMigrations() {
 			tagged_users JSONB,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
-		
+
 		// Voting campaigns
 		`CREATE TABLE IF NOT EXISTS voting_campaigns (
 			id BIGSERIAL PRIMARY KEY,
@@ -277,7 +274,7 @@ func (suite *TestSuite) runEnhancedMigrations() {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
-		
+
 		// Campaign votes
 		`CREATE TABLE IF NOT EXISTS campaign_votes (
 			id BIGSERIAL PRIMARY KEY,
@@ -289,7 +286,7 @@ func (suite *TestSuite) runEnhancedMigrations() {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			UNIQUE(campaign_id, user_id, venue_id)
 		)`,
-		
+
 		// Venue analytics
 		`CREATE TABLE IF NOT EXISTS venue_analytics (
 			id BIGSERIAL PRIMARY KEY,
@@ -306,7 +303,7 @@ func (suite *TestSuite) runEnhancedMigrations() {
 			average_daily_rating DECIMAL(3,2),
 			UNIQUE(venue_id, date)
 		)`,
-		
+
 		// Search analytics
 		`CREATE TABLE IF NOT EXISTS search_analytics (
 			id BIGSERIAL PRIMARY KEY,
@@ -323,7 +320,7 @@ func (suite *TestSuite) runEnhancedMigrations() {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
 	}
-	
+
 	for _, migration := range migrations {
 		_, err := suite.db.Exec(migration)
 		suite.Require().NoError(err, "Failed to run migration: %s", migration)
@@ -334,12 +331,12 @@ func (suite *TestSuite) runEnhancedMigrations() {
 func (suite *TestSuite) setupRouter() {
 	suite.router = gin.New()
 	suite.router.Use(gin.Recovery())
-	
+
 	// Add test middleware that bypasses authentication
 	suite.router.Use(suite.testAuthMiddleware())
-	
+
 	v1 := suite.router.Group("/v1")
-	
+
 	// Venue routes
 	venueRoutes := v1.Group("/venues")
 	{
@@ -351,11 +348,11 @@ func (suite *TestSuite) setupRouter() {
 		venueRoutes.GET("/:id", venueController.GetByID)
 		venueRoutes.POST("/", venueController.CreateVenue)
 	}
-	
+
 	// Review routes
 	v1.GET("/venues/:venue_id/reviews", controllers.ReviewController{}.GetVenueReviews)
 	v1.GET("/venues/:venue_id/reviews/summary", controllers.ReviewController{}.GetReviewSummary)
-	
+
 	userReviewRoutes := v1.Group("/reviews/:snapp_id")
 	{
 		reviewController := new(controllers.ReviewController)
@@ -363,7 +360,7 @@ func (suite *TestSuite) setupRouter() {
 		userReviewRoutes.GET("/", reviewController.GetUserReviews)
 		userReviewRoutes.POST("/:review_id/vote", reviewController.VoteReviewHelpful)
 	}
-	
+
 	// Legacy vote routes for backwards compatibility
 	voteRoutes := v1.Group("/vote/:snapp_id")
 	{
@@ -386,55 +383,55 @@ func (suite *TestSuite) testAuthMiddleware() gin.HandlerFunc {
 // createTestData creates test fixtures
 func (suite *TestSuite) createTestData() {
 	suite.testData = &TestData{}
-	
+
 	// Create test users
 	_, err := suite.db.Exec("INSERT INTO snapp_users (id, snapp_id) VALUES (1, 'test_user_1') ON CONFLICT (id) DO NOTHING")
 	suite.Require().NoError(err)
 	_, err = suite.db.Exec("INSERT INTO snapp_users (id, snapp_id) VALUES (2, 'test_user_2') ON CONFLICT (id) DO NOTHING")
 	suite.Require().NoError(err)
-	
-	suite.testData.TestUser1 = models.SnapUser{ID: 1, SnappId: "test_user_1"}
-	suite.testData.TestUser2 = models.SnapUser{ID: 2, SnappId: "test_user_2"}
-	
+
+	suite.testData.TestUser1 = models.SnappUser{Id: 1, SnappId: "test_user_1"}
+	suite.testData.TestUser2 = models.SnappUser{Id: 2, SnappId: "test_user_2"}
+
 	// Create test city
 	_, err = suite.db.Exec(`INSERT INTO cities (id, name, state, country, latitude, longitude) 
 		VALUES (1, 'San Francisco', 'California', 'USA', 37.7749, -122.4194) ON CONFLICT (id) DO NOTHING`)
 	suite.Require().NoError(err)
-	
+
 	suite.testData.TestCity = models.City{
 		ID: 1, Name: "San Francisco", State: "California", Country: "USA",
 		Latitude: 37.7749, Longitude: -122.4194,
 	}
-	
+
 	// Create test category
 	_, err = suite.db.Exec(`INSERT INTO venue_categories (id, name, description, icon) 
 		VALUES (1, 'Restaurant', 'Restaurants and dining establishments', 'restaurant-icon') ON CONFLICT (id) DO NOTHING`)
 	suite.Require().NoError(err)
-	
+
 	suite.testData.TestCategory = models.VenueCategory{
 		ID: 1, Name: "Restaurant", Description: "Restaurants and dining establishments", Icon: "restaurant-icon",
 	}
-	
+
 	// Create test venues
 	_, err = suite.db.Exec(`INSERT INTO venues (id, name, slug, description, address, city_id, latitude, longitude, 
 		category_id, price_range, average_rating, total_ratings, is_active) 
 		VALUES (1, 'Test Restaurant 1', 'test-restaurant-1', 'A great test restaurant', 
 		'123 Test St, San Francisco, CA', 1, 37.7849, -122.4094, 1, '$$', 4.5, 10, true) ON CONFLICT (id) DO NOTHING`)
 	suite.Require().NoError(err)
-	
+
 	_, err = suite.db.Exec(`INSERT INTO venues (id, name, slug, description, address, city_id, latitude, longitude, 
 		category_id, price_range, average_rating, total_ratings, is_active) 
 		VALUES (2, 'Test Restaurant 2', 'test-restaurant-2', 'Another great test restaurant', 
 		'456 Test Ave, San Francisco, CA', 1, 37.7749, -122.4194, 1, '$$$', 4.2, 8, true) ON CONFLICT (id) DO NOTHING`)
 	suite.Require().NoError(err)
-	
+
 	suite.testData.TestVenue1 = models.Venue{
 		ID: 1, Name: "Test Restaurant 1", Slug: "test-restaurant-1",
 		Description: "A great test restaurant", Address: "123 Test St, San Francisco, CA",
 		CityID: 1, Latitude: 37.7849, Longitude: -122.4094, CategoryID: 1,
 		PriceRange: "$$", AverageRating: 4.5, TotalRatings: 10, IsActive: true,
 	}
-	
+
 	suite.testData.TestVenue2 = models.Venue{
 		ID: 2, Name: "Test Restaurant 2", Slug: "test-restaurant-2",
 		Description: "Another great test restaurant", Address: "456 Test Ave, San Francisco, CA",
@@ -450,7 +447,7 @@ func (suite *TestSuite) cleanupTestData() {
 		"venue_checkins", "venue_collection_items", "venue_collections", "venue_reviews",
 		"venues", "venue_subcategories", "venue_categories", "cities", "snapp_users",
 	}
-	
+
 	for _, table := range tables {
 		_, err := suite.db.Exec(fmt.Sprintf("DELETE FROM %s", table))
 		if err != nil {

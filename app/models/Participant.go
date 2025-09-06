@@ -1,9 +1,9 @@
 package models
 
 import (
-	databases "voting-app/app"
 	"fmt"
 	"github.com/getsentry/sentry-go"
+	databases "voting-app/app"
 )
 
 type Participant struct {

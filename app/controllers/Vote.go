@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"voting-app/app/models"
-	"voting-app/app/serializers"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"voting-app/app/models"
+	"voting-app/app/serializers"
 )
 
 type VoteController struct {

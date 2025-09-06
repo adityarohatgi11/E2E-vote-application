@@ -1,11 +1,13 @@
 package main
 
 import (
+	"log"
+	"os"
 	"voting-app/app/controllers"
 	"voting-app/app/middlewares"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
-	"log"
 )
 
 func initSentry() {
@@ -54,8 +56,6 @@ func apiHandler() {
 		sentry.CaptureException(err)
 	}
 }
-
-
 
 func main() {
 	initSentry()

@@ -1,8 +1,8 @@
 package models
 
 import (
-	databases "voting-app/app"
 	"github.com/getsentry/sentry-go"
+	databases "voting-app/app"
 )
 
 type Voucher struct {

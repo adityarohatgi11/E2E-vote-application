@@ -1,8 +1,8 @@
 package serializers
 
 import (
-	"voting-app/app/models"
 	"strconv"
+	"voting-app/app/models"
 )
 
 type UserHistory struct {

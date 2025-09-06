@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"voting-app/app/models"
-	"voting-app/app/serializers"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
+	"voting-app/app/models"
+	"voting-app/app/serializers"
 )
 
 type User struct {

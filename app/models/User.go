@@ -1,12 +1,12 @@
 package models
 
 import (
-	databases "voting-app/app"
 	"github.com/golang-jwt/jwt"
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 	"os"
 	"time"
+	databases "voting-app/app"
 )
 
 type User struct {

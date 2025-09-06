@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"voting-app/app/models"
-	"voting-app/app/serializers"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 	"time"
+	"voting-app/app/models"
+	"voting-app/app/serializers"
 )
 
 type ReviewController struct{}
@@ -31,21 +31,21 @@ func (ReviewController) CreateReview(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Validate request
 	base, isValid := request.Validate()
 	if !isValid {
 		ctx.JSON(http.StatusBadRequest, base)
 		return
 	}
-	
+
 	// Get user ID from context (set by middleware)
 	userID := ctx.GetInt64("snappUser_id")
-	
+
 	// Create review
 	review := request.ToReview()
 	review.UserID = userID
-	
+
 	err := review.Create()
 	if err != nil {
 		if err.Error() == "user has already reviewed this venue" {
@@ -55,14 +55,14 @@ func (ReviewController) CreateReview(ctx *gin.Context) {
 			})
 			return
 		}
-		
+
 		ctx.JSON(http.StatusInternalServerError, serializers.Base{
 			Code:    serializers.InternalError,
 			Message: "Failed to create review",
 		})
 		return
 	}
-	
+
 	// Get the created review with full details
 	err = review.GetByID()
 	if err != nil {
@@ -70,7 +70,7 @@ func (ReviewController) CreateReview(ctx *gin.Context) {
 		ctx.JSON(http.StatusCreated, review)
 		return
 	}
-	
+
 	ctx.JSON(http.StatusCreated, review)
 }
 
@@ -99,7 +99,7 @@ func (ReviewController) GetVenueReviews(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Parse filters
 	filters := models.ReviewFilters{
 		VenueID: &venueID,
@@ -107,43 +107,43 @@ func (ReviewController) GetVenueReviews(ctx *gin.Context) {
 		Page:    1,
 		Limit:   20,
 	}
-	
+
 	// Parse optional filters
 	if minRatingStr := ctx.Query("min_rating"); minRatingStr != "" {
 		if minRating, err := strconv.ParseFloat(minRatingStr, 64); err == nil {
 			filters.MinRating = &minRating
 		}
 	}
-	
+
 	if maxRatingStr := ctx.Query("max_rating"); maxRatingStr != "" {
 		if maxRating, err := strconv.ParseFloat(maxRatingStr, 64); err == nil {
 			filters.MaxRating = &maxRating
 		}
 	}
-	
+
 	if visitType := ctx.Query("visit_type"); visitType != "" {
 		filters.VisitType = visitType
 	}
-	
+
 	if hasPhotosStr := ctx.Query("has_photos"); hasPhotosStr != "" {
 		if hasPhotos, err := strconv.ParseBool(hasPhotosStr); err == nil {
 			filters.HasPhotos = &hasPhotos
 		}
 	}
-	
+
 	// Parse pagination
 	if pageStr := ctx.Query("page"); pageStr != "" {
 		if page, err := strconv.Atoi(pageStr); err == nil && page > 0 {
 			filters.Page = page
 		}
 	}
-	
+
 	if limitStr := ctx.Query("limit"); limitStr != "" {
 		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 && limit <= 100 {
 			filters.Limit = limit
 		}
 	}
-	
+
 	// Get reviews
 	review := &models.VenueReview{}
 	reviews, totalCount, err := review.Search(filters)
@@ -154,12 +154,12 @@ func (ReviewController) GetVenueReviews(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Calculate pagination
 	totalPages := (totalCount + filters.Limit - 1) / filters.Limit
 	hasNext := filters.Page < totalPages
 	hasPrev := filters.Page > 1
-	
+
 	response := serializers.ReviewSearchResponse{
 		Reviews: reviews,
 		Pagination: serializers.PaginationInfo{
@@ -172,7 +172,7 @@ func (ReviewController) GetVenueReviews(ctx *gin.Context) {
 		},
 		Filters: filters,
 	}
-	
+
 	ctx.JSON(http.StatusOK, response)
 }
 
@@ -194,7 +194,7 @@ func (ReviewController) GetReviewSummary(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	summary, err := models.GetVenueReviewSummary(venueID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, serializers.Base{
@@ -203,7 +203,7 @@ func (ReviewController) GetReviewSummary(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, summary)
 }
 
@@ -220,7 +220,7 @@ func (ReviewController) GetReviewSummary(ctx *gin.Context) {
 // @Router       /users/{snapp_id}/reviews [get]
 func (ReviewController) GetUserReviews(ctx *gin.Context) {
 	userID := ctx.GetInt64("snappUser_id")
-	
+
 	// Parse filters
 	filters := models.ReviewFilters{
 		UserID: &userID,
@@ -228,20 +228,20 @@ func (ReviewController) GetUserReviews(ctx *gin.Context) {
 		Page:   1,
 		Limit:  20,
 	}
-	
+
 	// Parse pagination
 	if pageStr := ctx.Query("page"); pageStr != "" {
 		if page, err := strconv.Atoi(pageStr); err == nil && page > 0 {
 			filters.Page = page
 		}
 	}
-	
+
 	if limitStr := ctx.Query("limit"); limitStr != "" {
 		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 && limit <= 100 {
 			filters.Limit = limit
 		}
 	}
-	
+
 	// Get reviews
 	review := &models.VenueReview{}
 	reviews, totalCount, err := review.Search(filters)
@@ -252,12 +252,12 @@ func (ReviewController) GetUserReviews(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Calculate pagination
 	totalPages := (totalCount + filters.Limit - 1) / filters.Limit
 	hasNext := filters.Page < totalPages
 	hasPrev := filters.Page > 1
-	
+
 	response := serializers.ReviewSearchResponse{
 		Reviews: reviews,
 		Pagination: serializers.PaginationInfo{
@@ -270,7 +270,7 @@ func (ReviewController) GetUserReviews(ctx *gin.Context) {
 		},
 		Filters: filters,
 	}
-	
+
 	ctx.JSON(http.StatusOK, response)
 }
 
@@ -296,7 +296,7 @@ func (ReviewController) VoteReviewHelpful(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	var request serializers.ReviewVoteRequest
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		ctx.JSON(http.StatusBadRequest, serializers.Base{
@@ -305,9 +305,9 @@ func (ReviewController) VoteReviewHelpful(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	userID := ctx.GetInt64("snappUser_id")
-	
+
 	review := &models.VenueReview{ID: reviewID}
 	err = review.VoteHelpful(userID, request.IsHelpful)
 	if err != nil {
@@ -317,7 +317,7 @@ func (ReviewController) VoteReviewHelpful(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, serializers.Base{
 		Code:    serializers.Success,
 		Message: "Vote recorded successfully",
@@ -348,7 +348,7 @@ func (ReviewController) UpdateReview(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	var request serializers.UpdateReviewRequest
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		ctx.JSON(http.StatusBadRequest, serializers.Base{
@@ -357,9 +357,9 @@ func (ReviewController) UpdateReview(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	userID := ctx.GetInt64("snappUser_id")
-	
+
 	// Check if review exists and belongs to user
 	review := &models.VenueReview{ID: reviewID}
 	err = review.GetByID()
@@ -370,7 +370,7 @@ func (ReviewController) UpdateReview(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	if review.UserID != userID {
 		ctx.JSON(http.StatusForbidden, serializers.Base{
 			Code:    serializers.Forbidden,
@@ -378,14 +378,14 @@ func (ReviewController) UpdateReview(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Validate updated data
 	base, isValid := request.Validate()
 	if !isValid {
 		ctx.JSON(http.StatusBadRequest, base)
 		return
 	}
-	
+
 	// Update review (this would need to be implemented in the model)
 	// For now, just return the existing review
 	ctx.JSON(http.StatusOK, review)
@@ -413,9 +413,9 @@ func (ReviewController) DeleteReview(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	userID := ctx.GetInt64("snappUser_id")
-	
+
 	// Check if review exists and belongs to user
 	review := &models.VenueReview{ID: reviewID}
 	err = review.GetByID()
@@ -426,7 +426,7 @@ func (ReviewController) DeleteReview(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	if review.UserID != userID {
 		ctx.JSON(http.StatusForbidden, serializers.Base{
 			Code:    serializers.Forbidden,
@@ -434,7 +434,7 @@ func (ReviewController) DeleteReview(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Delete review (this would need to be implemented in the model)
 	// For now, just return success
 	ctx.JSON(http.StatusOK, serializers.Base{
@@ -460,11 +460,11 @@ func (ReviewController) GetTrendingReviews(ctx *gin.Context) {
 			limit = l
 		}
 	}
-	
+
 	timePeriod := ctx.DefaultQuery("time_period", "week")
 	var dateFrom *time.Time
 	now := time.Now()
-	
+
 	switch timePeriod {
 	case "today":
 		today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
@@ -476,20 +476,20 @@ func (ReviewController) GetTrendingReviews(ctx *gin.Context) {
 		weekAgo := now.AddDate(0, 0, -7)
 		dateFrom = &weekAgo
 	}
-	
+
 	filters := models.ReviewFilters{
 		DateFrom: dateFrom,
 		SortBy:   "helpful",
 		Limit:    limit,
 		Page:     1,
 	}
-	
+
 	// Add category filter if provided
 	if categoryStr := ctx.Query("category"); categoryStr != "" {
 		// This would need a join with venues table to filter by category
 		// For now, we'll skip this filter
 	}
-	
+
 	review := &models.VenueReview{}
 	reviews, _, err := review.Search(filters)
 	if err != nil {
@@ -499,6 +499,6 @@ func (ReviewController) GetTrendingReviews(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, reviews)
 }

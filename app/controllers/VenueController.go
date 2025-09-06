@@ -1,13 +1,14 @@
 package controllers
 
 import (
-	"voting-app/app/models"
-	"voting-app/app/serializers"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+	"voting-app/app/models"
+	"voting-app/app/serializers"
+
+	"github.com/gin-gonic/gin"
 )
 
 type VenueController struct{}
@@ -43,39 +44,39 @@ func (VenueController) Search(ctx *gin.Context) {
 		Page:   1,
 		Limit:  20,
 	}
-	
+
 	// Parse numeric parameters
 	if categoryStr := ctx.Query("category"); categoryStr != "" {
 		if categoryID, err := strconv.ParseInt(categoryStr, 10, 64); err == nil {
 			params.CategoryID = &categoryID
 		}
 	}
-	
+
 	if subcategoryStr := ctx.Query("subcategory"); subcategoryStr != "" {
 		if subcategoryID, err := strconv.ParseInt(subcategoryStr, 10, 64); err == nil {
 			params.SubcategoryID = &subcategoryID
 		}
 	}
-	
+
 	if cityStr := ctx.Query("city"); cityStr != "" {
 		if cityID, err := strconv.ParseInt(cityStr, 10, 64); err == nil {
 			params.CityID = &cityID
 		}
 	}
-	
+
 	// Parse location parameters
 	if latStr := ctx.Query("lat"); latStr != "" {
 		if lat, err := strconv.ParseFloat(latStr, 64); err == nil {
 			params.Latitude = &lat
 		}
 	}
-	
+
 	if lngStr := ctx.Query("lng"); lngStr != "" {
 		if lng, err := strconv.ParseFloat(lngStr, 64); err == nil {
 			params.Longitude = &lng
 		}
 	}
-	
+
 	if radiusStr := ctx.Query("radius"); radiusStr != "" {
 		if radius, err := strconv.ParseFloat(radiusStr, 64); err == nil {
 			params.Radius = &radius
@@ -85,50 +86,50 @@ func (VenueController) Search(ctx *gin.Context) {
 		defaultRadius := 10.0
 		params.Radius = &defaultRadius
 	}
-	
+
 	// Parse price range
 	if priceRangeStr := ctx.Query("price_range"); priceRangeStr != "" {
 		params.PriceRange = strings.Split(priceRangeStr, ",")
 	}
-	
+
 	// Parse minimum rating
 	if minRatingStr := ctx.Query("min_rating"); minRatingStr != "" {
 		if minRating, err := strconv.ParseFloat(minRatingStr, 64); err == nil {
 			params.MinRating = &minRating
 		}
 	}
-	
+
 	// Parse amenities
 	if amenitiesStr := ctx.Query("amenities"); amenitiesStr != "" {
 		params.Amenities = strings.Split(amenitiesStr, ",")
 	}
-	
+
 	// Parse boolean flags
 	if isOpenStr := ctx.Query("is_open"); isOpenStr != "" {
 		if isOpen, err := strconv.ParseBool(isOpenStr); err == nil {
 			params.IsOpen = &isOpen
 		}
 	}
-	
+
 	if isFeaturedStr := ctx.Query("is_featured"); isFeaturedStr != "" {
 		if isFeatured, err := strconv.ParseBool(isFeaturedStr); err == nil {
 			params.IsFeatured = &isFeatured
 		}
 	}
-	
+
 	// Parse pagination
 	if pageStr := ctx.Query("page"); pageStr != "" {
 		if page, err := strconv.Atoi(pageStr); err == nil && page > 0 {
 			params.Page = page
 		}
 	}
-	
+
 	if limitStr := ctx.Query("limit"); limitStr != "" {
 		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 && limit <= 100 {
 			params.Limit = limit
 		}
 	}
-	
+
 	// Perform search
 	venue := &models.Venue{}
 	venues, totalCount, err := venue.Search(params)
@@ -139,14 +140,14 @@ func (VenueController) Search(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Calculate pagination info
 	totalPages := (totalCount + params.Limit - 1) / params.Limit
 	hasNext := params.Page < totalPages
 	hasPrev := params.Page > 1
-	
+
 	response := serializers.VenueSearchResponse{
-		Venues:     venues,
+		Venues: venues,
 		Pagination: serializers.PaginationInfo{
 			Page:       params.Page,
 			Limit:      params.Limit,
@@ -157,7 +158,7 @@ func (VenueController) Search(ctx *gin.Context) {
 		},
 		SearchParams: params,
 	}
-	
+
 	ctx.JSON(http.StatusOK, response)
 }
 
@@ -181,7 +182,7 @@ func (VenueController) GetByID(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	venue := &models.Venue{ID: venueID}
 	err = venue.GetByID()
 	if err != nil {
@@ -191,7 +192,7 @@ func (VenueController) GetByID(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Calculate distance if user location provided
 	if latStr := ctx.Query("user_lat"); latStr != "" {
 		if lngStr := ctx.Query("user_lng"); lngStr != "" {
@@ -204,22 +205,22 @@ func (VenueController) GetByID(ctx *gin.Context) {
 			}
 		}
 	}
-	
+
 	// Get review summary
 	reviewSummary, err := models.GetVenueReviewSummary(venueID)
 	if err != nil {
 		reviewSummary = &models.ReviewSummary{VenueID: venueID}
 	}
-	
-	// Get recent events
-	events := getVenueEvents(venueID, 5)
-	
+
+	// Get recent events (commented out for now)
+	// events := getVenueEvents(venueID, 5)
+
 	response := serializers.VenueDetailResponse{
 		Venue:         *venue,
 		ReviewSummary: reviewSummary,
-		Events:        events,
+		// Events:        events,
 	}
-	
+
 	ctx.JSON(http.StatusOK, response)
 }
 
@@ -238,7 +239,7 @@ func (VenueController) GetByID(ctx *gin.Context) {
 func (VenueController) GetNearby(ctx *gin.Context) {
 	latStr := ctx.Query("lat")
 	lngStr := ctx.Query("lng")
-	
+
 	if latStr == "" || lngStr == "" {
 		ctx.JSON(http.StatusBadRequest, serializers.Base{
 			Code:    serializers.InvalidInput,
@@ -246,7 +247,7 @@ func (VenueController) GetNearby(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	lat, err := strconv.ParseFloat(latStr, 64)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, serializers.Base{
@@ -255,7 +256,7 @@ func (VenueController) GetNearby(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	lng, err := strconv.ParseFloat(lngStr, 64)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, serializers.Base{
@@ -264,21 +265,21 @@ func (VenueController) GetNearby(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	radius := 5.0 // Default 5km
 	if radiusStr := ctx.Query("radius"); radiusStr != "" {
 		if r, err := strconv.ParseFloat(radiusStr, 64); err == nil {
 			radius = r
 		}
 	}
-	
+
 	limit := 20
 	if limitStr := ctx.Query("limit"); limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
 			limit = l
 		}
 	}
-	
+
 	venue := &models.Venue{}
 	venues, err := venue.GetNearby(lat, lng, radius, limit)
 	if err != nil {
@@ -288,7 +289,7 @@ func (VenueController) GetNearby(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, venues)
 }
 
@@ -308,7 +309,7 @@ func (VenueController) GetFeatured(ctx *gin.Context) {
 			limit = l
 		}
 	}
-	
+
 	venue := &models.Venue{}
 	venues, err := venue.GetFeatured(limit)
 	if err != nil {
@@ -318,7 +319,7 @@ func (VenueController) GetFeatured(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, venues)
 }
 
@@ -337,7 +338,7 @@ func (VenueController) GetCategories(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusOK, categories)
 }
 
@@ -360,14 +361,14 @@ func (VenueController) CreateVenue(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Validate required fields
 	base, isValid := request.Validate()
 	if !isValid {
 		ctx.JSON(http.StatusBadRequest, base)
 		return
 	}
-	
+
 	// Create venue
 	venue := request.ToVenue()
 	// Set owner from authenticated user
@@ -376,7 +377,7 @@ func (VenueController) CreateVenue(ctx *gin.Context) {
 		now := time.Now()
 		venue.ClaimedAt = &now
 	}
-	
+
 	err := venue.Create()
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, serializers.Base{
@@ -385,7 +386,7 @@ func (VenueController) CreateVenue(ctx *gin.Context) {
 		})
 		return
 	}
-	
+
 	ctx.JSON(http.StatusCreated, venue)
 }
 
@@ -395,16 +396,16 @@ func calculateDistance(lat1, lng1, lat2, lng2 float64) float64 {
 	// Simple Haversine formula implementation
 	// For production, use a proper geospatial library
 	const R = 6371 // Earth radius in kilometers
-	
+
 	dLat := (lat2 - lat1) * (3.14159 / 180)
-	dLng := (lng2 - lng1) * (3.14159 / 180)
-	
+	_ = (lng2 - lng1) * (3.14159 / 180) // dLng not used in simplified calc
+
 	a := 0.5 - (0.5 * (1 + (dLat * dLat / 4)))
 	return R * 2 * (1.5708 - a) // Simplified calculation
 }
 
-func getVenueEvents(venueID int64, limit int) []models.VenueEvent {
+func getVenueEvents(venueID int64, limit int) []interface{} {
 	// This would be implemented in a VenueEvent model
 	// For now, return empty slice
-	return []models.VenueEvent{}
+	return []interface{}{}
 }

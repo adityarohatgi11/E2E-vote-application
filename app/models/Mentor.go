@@ -1,9 +1,10 @@
 package models
 
 import (
-	databases "Svoting-app/app"
 	"database/sql"
 	"fmt"
+	databases "voting-app/app"
+
 	"github.com/getsentry/sentry-go"
 )
 

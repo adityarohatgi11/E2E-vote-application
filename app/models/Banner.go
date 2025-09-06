@@ -1,10 +1,10 @@
 package models
 
 import (
-	databases "voting-app/app"
 	"database/sql"
 	"fmt"
 	"github.com/getsentry/sentry-go"
+	databases "voting-app/app"
 )
 
 type Banner struct {

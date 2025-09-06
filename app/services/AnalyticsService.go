@@ -1,11 +1,14 @@
 package services
 
 import (
-	"voting-app/app/models"
-	databases "voting-app/app"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
+	databases "voting-app/app"
+	"voting-app/app/models"
+
 	"github.com/getsentry/sentry-go"
 )
 
@@ -14,46 +17,46 @@ type AnalyticsService struct{}
 
 // VenueAnalytics represents comprehensive venue performance metrics
 type VenueAnalytics struct {
-	VenueID        int64                  `json:"venueId"`
-	VenueName      string                 `json:"venueName"`
-	TimeRange      string                 `json:"timeRange"`
-	
+	VenueID   int64  `json:"venueId"`
+	VenueName string `json:"venueName"`
+	TimeRange string `json:"timeRange"`
+
 	// Engagement Metrics
-	ProfileViews     int                  `json:"profileViews"`
-	PhotoViews       int                  `json:"photoViews"`
-	PhoneClicks      int                  `json:"phoneClicks"`
-	WebsiteClicks    int                  `json:"websiteClicks"`
-	DirectionRequests int                 `json:"directionRequests"`
-	
+	ProfileViews      int `json:"profileViews"`
+	PhotoViews        int `json:"photoViews"`
+	PhoneClicks       int `json:"phoneClicks"`
+	WebsiteClicks     int `json:"websiteClicks"`
+	DirectionRequests int `json:"directionRequests"`
+
 	// Social Metrics
-	CheckinsCount    int                  `json:"checkinsCount"`
-	ReviewsCount     int                  `json:"reviewsCount"`
-	SharesCount      int                  `json:"sharesCount"`
-	
+	CheckinsCount int `json:"checkinsCount"`
+	ReviewsCount  int `json:"reviewsCount"`
+	SharesCount   int `json:"sharesCount"`
+
 	// Rating Trends
-	AverageRating    float64              `json:"averageRating"`
-	RatingTrend      []DailyRating        `json:"ratingTrend"`
-	RatingDistribution map[string]int     `json:"ratingDistribution"`
-	
+	AverageRating      float64        `json:"averageRating"`
+	RatingTrend        []DailyRating  `json:"ratingTrend"`
+	RatingDistribution map[string]int `json:"ratingDistribution"`
+
 	// Popular Times
-	PopularHours     map[int]int          `json:"popularHours"`     // Hour -> Visit count
-	PopularDays      map[string]int       `json:"popularDays"`      // Day -> Visit count
-	
+	PopularHours map[int]int    `json:"popularHours"` // Hour -> Visit count
+	PopularDays  map[string]int `json:"popularDays"`  // Day -> Visit count
+
 	// Search Performance
-	SearchImpressions int                 `json:"searchImpressions"`
-	SearchClicks      int                 `json:"searchClicks"`
-	ClickThroughRate  float64             `json:"clickThroughRate"`
-	AveragePosition   float64             `json:"averagePosition"`
-	
+	SearchImpressions int     `json:"searchImpressions"`
+	SearchClicks      int     `json:"searchClicks"`
+	ClickThroughRate  float64 `json:"clickThroughRate"`
+	AveragePosition   float64 `json:"averagePosition"`
+
 	// Competitive Analysis
-	CategoryRank      int                 `json:"categoryRank"`
-	LocalRank         int                 `json:"localRank"`
-	
+	CategoryRank int `json:"categoryRank"`
+	LocalRank    int `json:"localRank"`
+
 	// User Demographics
-	Demographics      UserDemographics    `json:"demographics"`
-	
+	Demographics UserDemographics `json:"demographics"`
+
 	// Growth Metrics
-	GrowthMetrics     GrowthData          `json:"growthMetrics"`
+	GrowthMetrics GrowthData `json:"growthMetrics"`
 }
 
 type DailyRating struct {
@@ -74,44 +77,44 @@ type CityMetric struct {
 }
 
 type GrowthData struct {
-	ReviewsGrowth    float64 `json:"reviewsGrowth"`    // % change
-	RatingGrowth     float64 `json:"ratingGrowth"`
+	ReviewsGrowth     float64 `json:"reviewsGrowth"` // % change
+	RatingGrowth      float64 `json:"ratingGrowth"`
 	ProfileViewGrowth float64 `json:"profileViewGrowth"`
-	PeriodComparison string  `json:"periodComparison"`
+	PeriodComparison  string  `json:"periodComparison"`
 }
 
 // PlatformAnalytics represents overall platform metrics
 type PlatformAnalytics struct {
-	TimeRange        string               `json:"timeRange"`
-	
+	TimeRange string `json:"timeRange"`
+
 	// Overall Metrics
-	TotalVenues      int                  `json:"totalVenues"`
-	TotalUsers       int                  `json:"totalUsers"`
-	TotalReviews     int                  `json:"totalReviews"`
-	TotalCheckins    int                  `json:"totalCheckins"`
-	
+	TotalVenues   int `json:"totalVenues"`
+	TotalUsers    int `json:"totalUsers"`
+	TotalReviews  int `json:"totalReviews"`
+	TotalCheckins int `json:"totalCheckins"`
+
 	// Activity Metrics
-	DailyActiveUsers int                  `json:"dailyActiveUsers"`
-	WeeklyActiveUsers int                 `json:"weeklyActiveUsers"`
-	MonthlyActiveUsers int                `json:"monthlyActiveUsers"`
-	
+	DailyActiveUsers   int `json:"dailyActiveUsers"`
+	WeeklyActiveUsers  int `json:"weeklyActiveUsers"`
+	MonthlyActiveUsers int `json:"monthlyActiveUsers"`
+
 	// Content Metrics
-	ReviewsPerDay    []DateValue          `json:"reviewsPerDay"`
-	CheckinsPerDay   []DateValue          `json:"checkinsPerDay"`
-	NewVenuesPerDay  []DateValue          `json:"newVenuesPerDay"`
-	
+	ReviewsPerDay   []DateValue `json:"reviewsPerDay"`
+	CheckinsPerDay  []DateValue `json:"checkinsPerDay"`
+	NewVenuesPerDay []DateValue `json:"newVenuesPerDay"`
+
 	// Quality Metrics
-	AverageRating    float64              `json:"averageRating"`
-	ReviewQualityScore float64            `json:"reviewQualityScore"`
-	
+	AverageRating      float64 `json:"averageRating"`
+	ReviewQualityScore float64 `json:"reviewQualityScore"`
+
 	// Popular Categories
-	TopCategories    []CategoryMetric     `json:"topCategories"`
-	TopCities        []CityMetric         `json:"topCities"`
-	
+	TopCategories []CategoryMetric `json:"topCategories"`
+	TopCities     []CityMetric     `json:"topCities"`
+
 	// Search Analytics
-	TopSearchQueries []SearchQueryMetric  `json:"topSearchQueries"`
-	SearchTrends     []SearchTrendMetric  `json:"searchTrends"`
-	
+	TopSearchQueries []SearchQueryMetric `json:"topSearchQueries"`
+	SearchTrends     []SearchTrendMetric `json:"searchTrends"`
+
 	// User Engagement
 	EngagementMetrics UserEngagementMetrics `json:"engagementMetrics"`
 }
@@ -122,30 +125,30 @@ type DateValue struct {
 }
 
 type CategoryMetric struct {
-	CategoryName string `json:"categoryName"`
-	VenueCount   int    `json:"venueCount"`
-	ReviewCount  int    `json:"reviewCount"`
+	CategoryName  string  `json:"categoryName"`
+	VenueCount    int     `json:"venueCount"`
+	ReviewCount   int     `json:"reviewCount"`
 	AverageRating float64 `json:"averageRating"`
 }
 
 type SearchQueryMetric struct {
-	Query      string `json:"query"`
-	Count      int    `json:"count"`
-	ResultsCount int  `json:"resultsCount"`
+	Query        string  `json:"query"`
+	Count        int     `json:"count"`
+	ResultsCount int     `json:"resultsCount"`
 	ClickThrough float64 `json:"clickThrough"`
 }
 
 type SearchTrendMetric struct {
-	Query     string      `json:"query"`
-	Trend     []DateValue `json:"trend"`
-	Growth    float64     `json:"growth"`
+	Query  string      `json:"query"`
+	Trend  []DateValue `json:"trend"`
+	Growth float64     `json:"growth"`
 }
 
 type UserEngagementMetrics struct {
 	AverageSessionDuration time.Duration `json:"averageSessionDuration"`
-	BounceRate            float64       `json:"bounceRate"`
-	PagesPerSession       float64       `json:"pagesPerSession"`
-	ReturnUserRate        float64       `json:"returnUserRate"`
+	BounceRate             float64       `json:"bounceRate"`
+	PagesPerSession        float64       `json:"pagesPerSession"`
+	ReturnUserRate         float64       `json:"returnUserRate"`
 }
 
 // GetVenueAnalytics returns comprehensive analytics for a specific venue
@@ -155,15 +158,15 @@ func (as *AnalyticsService) GetVenueAnalytics(venueID int64, timeRange string) (
 	if err != nil {
 		return nil, err
 	}
-	
+
 	analytics := &VenueAnalytics{
-		VenueID:   venueID,
-		TimeRange: timeRange,
+		VenueID:            venueID,
+		TimeRange:          timeRange,
 		RatingDistribution: make(map[string]int),
-		PopularHours: make(map[int]int),
-		PopularDays: make(map[string]int),
+		PopularHours:       make(map[int]int),
+		PopularDays:        make(map[string]int),
 	}
-	
+
 	// Get venue name
 	var venueName string
 	err = databases.PostgresDB.QueryRow("SELECT name FROM venues WHERE id = $1", venueID).Scan(&venueName)
@@ -171,49 +174,49 @@ func (as *AnalyticsService) GetVenueAnalytics(venueID int64, timeRange string) (
 		return nil, err
 	}
 	analytics.VenueName = venueName
-	
+
 	// Get engagement metrics
 	err = as.getVenueEngagementMetrics(venueID, startDate, endDate, analytics)
 	if err != nil {
 		sentry.CaptureException(err)
 	}
-	
+
 	// Get rating analytics
 	err = as.getVenueRatingAnalytics(venueID, startDate, endDate, analytics)
 	if err != nil {
 		sentry.CaptureException(err)
 	}
-	
+
 	// Get popular times
 	err = as.getVenuePopularTimes(venueID, startDate, endDate, analytics)
 	if err != nil {
 		sentry.CaptureException(err)
 	}
-	
+
 	// Get search performance
 	err = as.getVenueSearchPerformance(venueID, startDate, endDate, analytics)
 	if err != nil {
 		sentry.CaptureException(err)
 	}
-	
+
 	// Get competitive ranking
 	err = as.getVenueRanking(venueID, analytics)
 	if err != nil {
 		sentry.CaptureException(err)
 	}
-	
+
 	// Get user demographics
 	err = as.getVenueDemographics(venueID, startDate, endDate, analytics)
 	if err != nil {
 		sentry.CaptureException(err)
 	}
-	
+
 	// Calculate growth metrics
 	err = as.calculateVenueGrowth(venueID, startDate, endDate, analytics)
 	if err != nil {
 		sentry.CaptureException(err)
 	}
-	
+
 	return analytics, nil
 }
 
@@ -223,41 +226,41 @@ func (as *AnalyticsService) GetPlatformAnalytics(timeRange string) (*PlatformAna
 	if err != nil {
 		return nil, err
 	}
-	
+
 	analytics := &PlatformAnalytics{
 		TimeRange: timeRange,
 	}
-	
+
 	// Get overall counts
 	err = as.getPlatformOverviewMetrics(analytics)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Get activity metrics
 	err = as.getPlatformActivityMetrics(startDate, endDate, analytics)
 	if err != nil {
 		sentry.CaptureException(err)
 	}
-	
+
 	// Get content metrics
 	err = as.getPlatformContentMetrics(startDate, endDate, analytics)
 	if err != nil {
 		sentry.CaptureException(err)
 	}
-	
+
 	// Get top categories and cities
 	err = as.getPlatformTopMetrics(startDate, endDate, analytics)
 	if err != nil {
 		sentry.CaptureException(err)
 	}
-	
+
 	// Get search analytics
 	err = as.getPlatformSearchAnalytics(startDate, endDate, analytics)
 	if err != nil {
 		sentry.CaptureException(err)
 	}
-	
+
 	return analytics, nil
 }
 
@@ -279,12 +282,12 @@ func (as *AnalyticsService) TrackVenueView(venueID, userID int64, viewType strin
 			phone_clicks = venue_analytics.phone_clicks + CASE WHEN $2 = 'phone' THEN 1 ELSE 0 END,
 			website_clicks = venue_analytics.website_clicks + CASE WHEN $2 = 'website' THEN 1 ELSE 0 END,
 			direction_requests = venue_analytics.direction_requests + CASE WHEN $2 = 'directions' THEN 1 ELSE 0 END`
-	
+
 	_, err := databases.PostgresDB.Exec(query, venueID, viewType)
 	if err != nil {
 		sentry.CaptureException(err)
 	}
-	
+
 	return err
 }
 
@@ -302,7 +305,7 @@ func (as *AnalyticsService) TrackSearch(userID int64, query string, filters map[
 			userLng = &lngFloat
 		}
 	}
-	
+
 	// Get search radius
 	var searchRadius *int
 	if radius, exists := filters["radius"]; exists {
@@ -311,10 +314,10 @@ func (as *AnalyticsService) TrackSearch(userID int64, query string, filters map[
 			searchRadius = &radiusInt
 		}
 	}
-	
+
 	// Serialize filters
 	filtersJSON, _ := json.Marshal(filters)
-	
+
 	// Insert search record
 	insertQuery := `
 		INSERT INTO search_analytics (
@@ -322,23 +325,23 @@ func (as *AnalyticsService) TrackSearch(userID int64, query string, filters map[
 			user_latitude, user_longitude, search_radius,
 			results_count, clicked_venue_id, click_position
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
-	
+
 	searchType := "text"
 	if query == "" {
 		searchType = "filter"
 	}
-	
+
 	_, err := databases.PostgresDB.Exec(
 		insertQuery,
 		userID, query, searchType, filtersJSON,
 		userLat, userLng, searchRadius,
 		len(results), clickedVenueID, clickPosition,
 	)
-	
+
 	if err != nil {
 		sentry.CaptureException(err)
 	}
-	
+
 	return err
 }
 
@@ -347,7 +350,7 @@ func (as *AnalyticsService) TrackSearch(userID int64, query string, filters map[
 func (as *AnalyticsService) parseTimeRange(timeRange string) (time.Time, time.Time, error) {
 	now := time.Now()
 	var startDate time.Time
-	
+
 	switch timeRange {
 	case "today":
 		startDate = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
@@ -366,7 +369,7 @@ func (as *AnalyticsService) parseTimeRange(timeRange string) (time.Time, time.Ti
 	default:
 		startDate = now.AddDate(0, 0, -7) // Default to last week
 	}
-	
+
 	return startDate, now, nil
 }
 
@@ -383,7 +386,7 @@ func (as *AnalyticsService) getVenueEngagementMetrics(venueID int64, startDate, 
 			COALESCE(SUM(shares), 0) as shares
 		FROM venue_analytics
 		WHERE venue_id = $1 AND date BETWEEN $2 AND $3`
-	
+
 	err := databases.PostgresDB.QueryRow(query, venueID, startDate, endDate).Scan(
 		&analytics.ProfileViews,
 		&analytics.PhotoViews,
@@ -394,7 +397,7 @@ func (as *AnalyticsService) getVenueEngagementMetrics(venueID int64, startDate, 
 		&analytics.ReviewsCount,
 		&analytics.SharesCount,
 	)
-	
+
 	return err
 }
 
@@ -406,7 +409,7 @@ func (as *AnalyticsService) getVenueRatingAnalytics(venueID int64, startDate, en
 	if err != nil {
 		return err
 	}
-	
+
 	// Get rating distribution
 	distQuery := `
 		SELECT 
@@ -421,13 +424,13 @@ func (as *AnalyticsService) getVenueRatingAnalytics(venueID int64, startDate, en
 		FROM venue_reviews
 		WHERE venue_id = $1 AND created_at BETWEEN $2 AND $3
 		GROUP BY rating_bucket`
-	
+
 	rows, err := databases.PostgresDB.Query(distQuery, venueID, startDate, endDate)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
-	
+
 	for rows.Next() {
 		var bucket string
 		var count int
@@ -435,7 +438,7 @@ func (as *AnalyticsService) getVenueRatingAnalytics(venueID int64, startDate, en
 			analytics.RatingDistribution[bucket] = count
 		}
 	}
-	
+
 	// Get daily rating trend
 	trendQuery := `
 		SELECT 
@@ -446,13 +449,13 @@ func (as *AnalyticsService) getVenueRatingAnalytics(venueID int64, startDate, en
 		WHERE venue_id = $1 AND created_at BETWEEN $2 AND $3
 		GROUP BY DATE(created_at)
 		ORDER BY date`
-	
+
 	rows, err = databases.PostgresDB.Query(trendQuery, venueID, startDate, endDate)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
-	
+
 	for rows.Next() {
 		var daily DailyRating
 		var date time.Time
@@ -461,7 +464,7 @@ func (as *AnalyticsService) getVenueRatingAnalytics(venueID int64, startDate, en
 			analytics.RatingTrend = append(analytics.RatingTrend, daily)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -475,20 +478,20 @@ func (as *AnalyticsService) getVenuePopularTimes(venueID int64, startDate, endDa
 		WHERE venue_id = $1 AND created_at BETWEEN $2 AND $3
 		GROUP BY hour
 		ORDER BY hour`
-	
+
 	rows, err := databases.PostgresDB.Query(hourQuery, venueID, startDate, endDate)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
-	
+
 	for rows.Next() {
 		var hour, count int
 		if rows.Scan(&hour, &count) == nil {
 			analytics.PopularHours[hour] = count
 		}
 	}
-	
+
 	// Get popular days
 	dayQuery := `
 		SELECT 
@@ -498,13 +501,13 @@ func (as *AnalyticsService) getVenuePopularTimes(venueID int64, startDate, endDa
 		WHERE venue_id = $1 AND created_at BETWEEN $2 AND $3
 		GROUP BY day_name, EXTRACT(dow FROM created_at)
 		ORDER BY EXTRACT(dow FROM created_at)`
-	
+
 	rows, err = databases.PostgresDB.Query(dayQuery, venueID, startDate, endDate)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
-	
+
 	for rows.Next() {
 		var day string
 		var count int
@@ -512,7 +515,7 @@ func (as *AnalyticsService) getVenuePopularTimes(venueID int64, startDate, endDa
 			analytics.PopularDays[strings.TrimSpace(day)] = count
 		}
 	}
-	
+
 	return nil
 }
 
@@ -533,26 +536,26 @@ func (as *AnalyticsService) getVenueSearchPerformance(venueID int64, startDate, 
 				  OR v.category_id::text = ANY(string_to_array(sa.filters_used->>'category_id', ','))
 			  )
 		  )`
-	
+
 	var avgPosition sql.NullFloat64
 	err := databases.PostgresDB.QueryRow(query, venueID, startDate, endDate).Scan(
 		&analytics.SearchImpressions,
 		&analytics.SearchClicks,
 		&avgPosition,
 	)
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	if avgPosition.Valid {
 		analytics.AveragePosition = avgPosition.Float64
 	}
-	
+
 	if analytics.SearchImpressions > 0 {
 		analytics.ClickThroughRate = float64(analytics.SearchClicks) / float64(analytics.SearchImpressions)
 	}
-	
+
 	return nil
 }
 
@@ -563,30 +566,30 @@ func (as *AnalyticsService) getVenueRanking(venueID int64, analytics *VenueAnaly
 	if err != nil {
 		return err
 	}
-	
+
 	// Category rank
 	categoryRankQuery := `
 		SELECT COUNT(*) + 1 as rank
 		FROM venues
 		WHERE category_id = $1 AND average_rating > (SELECT average_rating FROM venues WHERE id = $2)`
-	
+
 	err = databases.PostgresDB.QueryRow(categoryRankQuery, categoryID, venueID).Scan(&analytics.CategoryRank)
 	if err != nil {
 		analytics.CategoryRank = 0
 	}
-	
+
 	// Local rank (within same city)
 	localRankQuery := `
 		SELECT COUNT(*) + 1 as rank
 		FROM venues v1
 		JOIN venues v2 ON v1.city_id = v2.city_id
 		WHERE v2.id = $1 AND v1.average_rating > v2.average_rating`
-	
+
 	err = databases.PostgresDB.QueryRow(localRankQuery, venueID).Scan(&analytics.LocalRank)
 	if err != nil {
 		analytics.LocalRank = 0
 	}
-	
+
 	return nil
 }
 
@@ -594,7 +597,7 @@ func (as *AnalyticsService) getVenueDemographics(venueID int64, startDate, endDa
 	analytics.Demographics = UserDemographics{
 		AgeGroups: make(map[string]int),
 	}
-	
+
 	// Get top cities of visitors (based on check-ins)
 	cityQuery := `
 		SELECT c.name, COUNT(*) as count
@@ -609,7 +612,7 @@ func (as *AnalyticsService) getVenueDemographics(venueID int64, startDate, endDa
 		GROUP BY c.name
 		ORDER BY count DESC
 		LIMIT 5`
-	
+
 	rows, err := databases.PostgresDB.Query(cityQuery, venueID, startDate, endDate)
 	if err == nil {
 		defer rows.Close()
@@ -620,7 +623,7 @@ func (as *AnalyticsService) getVenueDemographics(venueID int64, startDate, endDa
 			}
 		}
 	}
-	
+
 	// Calculate return visitor rate
 	returnQuery := `
 		SELECT 
@@ -632,13 +635,13 @@ func (as *AnalyticsService) getVenueDemographics(venueID int64, startDate, endDa
 			WHERE venue_id = $1 AND created_at BETWEEN $2 AND $3
 			GROUP BY user_id
 		) user_visits`
-	
+
 	var totalUsers, returnUsers int
 	err = databases.PostgresDB.QueryRow(returnQuery, venueID, startDate, endDate).Scan(&totalUsers, &returnUsers)
 	if err == nil && totalUsers > 0 {
 		analytics.Demographics.ReturnVisitors = float64(returnUsers) / float64(totalUsers)
 	}
-	
+
 	return nil
 }
 
@@ -647,43 +650,43 @@ func (as *AnalyticsService) calculateVenueGrowth(venueID int64, startDate, endDa
 	duration := endDate.Sub(startDate)
 	prevStartDate := startDate.Add(-duration)
 	prevEndDate := startDate
-	
+
 	// Reviews growth
 	var currentReviews, prevReviews int
-	
+
 	databases.PostgresDB.QueryRow(
 		"SELECT COUNT(*) FROM venue_reviews WHERE venue_id = $1 AND created_at BETWEEN $2 AND $3",
 		venueID, startDate, endDate,
 	).Scan(&currentReviews)
-	
+
 	databases.PostgresDB.QueryRow(
 		"SELECT COUNT(*) FROM venue_reviews WHERE venue_id = $1 AND created_at BETWEEN $2 AND $3",
 		venueID, prevStartDate, prevEndDate,
 	).Scan(&prevReviews)
-	
+
 	if prevReviews > 0 {
 		analytics.GrowthMetrics.ReviewsGrowth = (float64(currentReviews-prevReviews) / float64(prevReviews)) * 100
 	}
-	
+
 	// Profile views growth
 	var currentViews, prevViews int
-	
+
 	databases.PostgresDB.QueryRow(
 		"SELECT COALESCE(SUM(profile_views), 0) FROM venue_analytics WHERE venue_id = $1 AND date BETWEEN $2 AND $3",
 		venueID, startDate, endDate,
 	).Scan(&currentViews)
-	
+
 	databases.PostgresDB.QueryRow(
 		"SELECT COALESCE(SUM(profile_views), 0) FROM venue_analytics WHERE venue_id = $1 AND date BETWEEN $2 AND $3",
 		venueID, prevStartDate, prevEndDate,
 	).Scan(&prevViews)
-	
+
 	if prevViews > 0 {
 		analytics.GrowthMetrics.ProfileViewGrowth = (float64(currentViews-prevViews) / float64(prevViews)) * 100
 	}
-	
+
 	analytics.GrowthMetrics.PeriodComparison = fmt.Sprintf("vs previous %s", analytics.TimeRange)
-	
+
 	return nil
 }
 
@@ -696,7 +699,7 @@ func (as *AnalyticsService) getPlatformOverviewMetrics(analytics *PlatformAnalyt
 			(SELECT COUNT(*) FROM venue_reviews),
 			(SELECT COUNT(*) FROM venue_checkins),
 			(SELECT AVG(average_rating) FROM venues WHERE total_ratings > 0)`
-	
+
 	err := databases.PostgresDB.QueryRow(query).Scan(
 		&analytics.TotalVenues,
 		&analytics.TotalUsers,
@@ -704,7 +707,7 @@ func (as *AnalyticsService) getPlatformOverviewMetrics(analytics *PlatformAnalyt
 		&analytics.TotalCheckins,
 		&analytics.AverageRating,
 	)
-	
+
 	return err
 }
 
@@ -713,29 +716,29 @@ func (as *AnalyticsService) getPlatformActivityMetrics(startDate, endDate time.T
 	err := databases.PostgresDB.QueryRow(
 		`SELECT COUNT(DISTINCT user_id) FROM venue_checkins WHERE created_at >= CURRENT_DATE`,
 	).Scan(&analytics.DailyActiveUsers)
-	
+
 	if err != nil {
 		analytics.DailyActiveUsers = 0
 	}
-	
+
 	// Weekly active users
 	err = databases.PostgresDB.QueryRow(
 		`SELECT COUNT(DISTINCT user_id) FROM venue_checkins WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'`,
 	).Scan(&analytics.WeeklyActiveUsers)
-	
+
 	if err != nil {
 		analytics.WeeklyActiveUsers = 0
 	}
-	
+
 	// Monthly active users
 	err = databases.PostgresDB.QueryRow(
 		`SELECT COUNT(DISTINCT user_id) FROM venue_checkins WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'`,
 	).Scan(&analytics.MonthlyActiveUsers)
-	
+
 	if err != nil {
 		analytics.MonthlyActiveUsers = 0
 	}
-	
+
 	return nil
 }
 
@@ -747,7 +750,7 @@ func (as *AnalyticsService) getPlatformContentMetrics(startDate, endDate time.Ti
 		WHERE created_at BETWEEN $1 AND $2 
 		GROUP BY DATE(created_at) 
 		ORDER BY DATE(created_at)`
-	
+
 	rows, err := databases.PostgresDB.Query(reviewQuery, startDate, endDate)
 	if err == nil {
 		defer rows.Close()
@@ -762,9 +765,9 @@ func (as *AnalyticsService) getPlatformContentMetrics(startDate, endDate time.Ti
 			}
 		}
 	}
-	
+
 	// Similar queries for checkins and new venues...
-	
+
 	return nil
 }
 
@@ -778,7 +781,7 @@ func (as *AnalyticsService) getPlatformTopMetrics(startDate, endDate time.Time, 
 		GROUP BY vc.id, vc.name
 		ORDER BY venue_count DESC, review_count DESC
 		LIMIT 10`
-	
+
 	rows, err := databases.PostgresDB.Query(categoryQuery, startDate, endDate)
 	if err == nil {
 		defer rows.Close()
@@ -793,7 +796,7 @@ func (as *AnalyticsService) getPlatformTopMetrics(startDate, endDate time.Time, 
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -808,7 +811,7 @@ func (as *AnalyticsService) getPlatformSearchAnalytics(startDate, endDate time.T
 		GROUP BY search_query
 		ORDER BY search_count DESC
 		LIMIT 20`
-	
+
 	rows, err := databases.PostgresDB.Query(queryQuery, startDate, endDate)
 	if err == nil {
 		defer rows.Close()
@@ -823,7 +826,7 @@ func (as *AnalyticsService) getPlatformSearchAnalytics(startDate, endDate time.T
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -832,12 +835,12 @@ func (as *AnalyticsService) GetTopPerformingVenues(timeRange string, category *i
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
-	
+
 	startDate, endDate, err := as.parseTimeRange(timeRange)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	query := `
 		SELECT v.id, v.name, v.average_rating, v.total_ratings,
 			   COALESCE(va.total_views, 0) as total_views,
@@ -852,57 +855,56 @@ func (as *AnalyticsService) GetTopPerformingVenues(timeRange string, category *i
 			GROUP BY venue_id
 		) va ON v.id = va.venue_id
 		WHERE v.is_active = true AND v.total_ratings >= 5`
-	
+
 	args := []interface{}{startDate, endDate}
 	argCount := 2
-	
+
 	if category != nil {
 		argCount++
 		query += fmt.Sprintf(" AND v.category_id = $%d", argCount)
 		args = append(args, *category)
 	}
-	
+
 	if city != nil {
 		argCount++
 		query += fmt.Sprintf(" AND v.city_id = $%d", argCount)
 		args = append(args, *city)
 	}
-	
+
 	query += ` ORDER BY 
 		(v.average_rating * 0.4 + 
 		 LEAST(COALESCE(va.total_views, 0) / 100.0, 5.0) * 0.3 + 
 		 LEAST(COALESCE(va.total_checkins, 0) / 10.0, 5.0) * 0.3) DESC
 		LIMIT $` + fmt.Sprintf("%d", argCount+1)
 	args = append(args, limit)
-	
+
 	rows, err := databases.PostgresDB.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var results []VenueAnalytics
 	for rows.Next() {
 		var va VenueAnalytics
 		var totalViews, totalCheckins int
-		
+
 		err := rows.Scan(
-			&va.VenueID, &va.VenueName, &va.AverageRating, 
+			&va.VenueID, &va.VenueName, &va.AverageRating,
 			&va.ReviewsCount, &totalViews, &totalCheckins,
 		)
 		if err != nil {
 			continue
 		}
-		
+
 		va.ProfileViews = totalViews
 		va.CheckinsCount = totalCheckins
 		va.TimeRange = timeRange
-		
+
 		results = append(results, va)
 	}
-	
+
 	return results, nil
 }
 
 // Additional analytics methods for sentiment analysis, growth metrics, etc. would be implemented similarly...
-

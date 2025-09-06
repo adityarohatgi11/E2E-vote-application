@@ -1,18 +1,18 @@
 package middlewares
 
 import (
+	"net/http"
 	"voting-app/app/models"
 	"voting-app/app/serializers"
+
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
-func AuthSnappUser() gin.HandlerFunc {
+func AuthSnappUserFirewall() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		snappUser := new(models.SnappUser)
-		var err error
 		snappUser.SnappId = ctx.Param("snapp_id")
-		if err != nil {
+		if snappUser.SnappId == "" {
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, serializers.Base{
 				Code:    serializers.InvalidInput,
 				Message: "snapp_id must be int64",

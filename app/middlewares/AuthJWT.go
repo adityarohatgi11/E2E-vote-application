@@ -2,10 +2,11 @@ package middlewares
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
 	"net/http"
 	"os"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 )
 
 func AuthorizeJWT() gin.HandlerFunc {
@@ -27,7 +28,7 @@ func AuthorizeJWT() gin.HandlerFunc {
 			}
 			parse, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 				if _, isvalid := token.Method.(*jwt.SigningMethodEd25519); !isvalid {
-					return nil, fmt.Errorf("Invalid token", token.Header["alg"])
+					return nil, fmt.Errorf("Invalid token: %v", token.Header["alg"])
 				}
 
 				return key, err

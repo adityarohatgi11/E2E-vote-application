@@ -1,13 +1,13 @@
 package controllers
 
 import (
-	"voting-app/app/services"
 	"bytes"
 	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
 	"io"
 	"net/http"
+	"voting-app/app/services"
 )
 
 type FileController struct {

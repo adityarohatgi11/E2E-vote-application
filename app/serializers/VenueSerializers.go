@@ -1,37 +1,37 @@
 package serializers
 
 import (
-	"voting-app/app/models"
 	"encoding/json"
 	"strings"
 	"time"
+	"voting-app/app/models"
 )
 
 // VenueSearchResponse for venue search API
 type VenueSearchResponse struct {
-	Venues       []models.Venue            `json:"venues"`
-	Pagination   PaginationInfo            `json:"pagination"`
-	SearchParams models.VenueSearchParams  `json:"searchParams"`
-	Suggestions  []string                  `json:"suggestions,omitempty"` // Search suggestions
-	Filters      VenueFilterOptions        `json:"filters"`               // Available filter options
+	Venues       []models.Venue           `json:"venues"`
+	Pagination   PaginationInfo           `json:"pagination"`
+	SearchParams models.VenueSearchParams `json:"searchParams"`
+	Suggestions  []string                 `json:"suggestions,omitempty"` // Search suggestions
+	Filters      VenueFilterOptions       `json:"filters"`               // Available filter options
 }
 
 // VenueDetailResponse for detailed venue information
 type VenueDetailResponse struct {
-	Venue         models.Venue         `json:"venue"`
+	Venue         models.Venue          `json:"venue"`
 	ReviewSummary *models.ReviewSummary `json:"reviewSummary"`
-	Events        []models.VenueEvent   `json:"events"`
-	SimilarVenues []models.Venue        `json:"similarVenues,omitempty"`
-	CheckinCount  int                   `json:"checkinCount,omitempty"`
+	// Events        []models.VenueEvent   `json:"events"`
+	SimilarVenues []models.Venue `json:"similarVenues,omitempty"`
+	CheckinCount  int            `json:"checkinCount,omitempty"`
 }
 
 // VenueFilterOptions provides available filter options for search
 type VenueFilterOptions struct {
-	Categories     []models.VenueCategory    `json:"categories"`
-	Subcategories  []models.VenueSubcategory `json:"subcategories"`
-	PriceRanges    []string                  `json:"priceRanges"`
-	Amenities      []string                  `json:"amenities"`
-	Cities         []models.City             `json:"cities"`
+	Categories    []models.VenueCategory    `json:"categories"`
+	Subcategories []models.VenueSubcategory `json:"subcategories"`
+	PriceRanges   []string                  `json:"priceRanges"`
+	Amenities     []string                  `json:"amenities"`
+	Cities        []models.City             `json:"cities"`
 }
 
 // CreateVenueRequest for creating new venues
@@ -82,42 +82,42 @@ func (r *CreateVenueRequest) Validate() (Base, bool) {
 			Message: "Venue name is required",
 		}, false
 	}
-	
+
 	if strings.TrimSpace(r.Address) == "" {
 		return Base{
 			Code:    InvalidInput,
 			Message: "Address is required",
 		}, false
 	}
-	
+
 	if r.CityID <= 0 {
 		return Base{
 			Code:    InvalidInput,
 			Message: "Valid city ID is required",
 		}, false
 	}
-	
+
 	if r.CategoryID <= 0 {
 		return Base{
 			Code:    InvalidInput,
 			Message: "Valid category ID is required",
 		}, false
 	}
-	
+
 	if r.Latitude < -90 || r.Latitude > 90 {
 		return Base{
 			Code:    InvalidInput,
 			Message: "Latitude must be between -90 and 90",
 		}, false
 	}
-	
+
 	if r.Longitude < -180 || r.Longitude > 180 {
 		return Base{
 			Code:    InvalidInput,
 			Message: "Longitude must be between -180 and 180",
 		}, false
 	}
-	
+
 	// Validate price range if provided
 	if r.PriceRange != "" {
 		validPriceRanges := []string{"$", "$$", "$$$", "$$$$"}
@@ -135,7 +135,7 @@ func (r *CreateVenueRequest) Validate() (Base, bool) {
 			}, false
 		}
 	}
-	
+
 	return Base{}, true
 }
 
@@ -165,13 +165,13 @@ func (r *CreateVenueRequest) ToVenue() *models.Venue {
 		IsVerified:       false,
 		IsFeatured:       false,
 	}
-	
+
 	// Convert amenities slice to JSON
 	if len(r.Amenities) > 0 {
 		amenitiesJSON, _ := json.Marshal(r.Amenities)
 		venue.Amenities = amenitiesJSON
 	}
-	
+
 	return venue
 }
 
@@ -187,9 +187,9 @@ type PaginationInfo struct {
 
 // ReviewSearchResponse for review search results
 type ReviewSearchResponse struct {
-	Reviews    []models.VenueReview  `json:"reviews"`
-	Pagination PaginationInfo        `json:"pagination"`
-	Filters    models.ReviewFilters  `json:"filters"`
+	Reviews    []models.VenueReview `json:"reviews"`
+	Pagination PaginationInfo       `json:"pagination"`
+	Filters    models.ReviewFilters `json:"filters"`
 }
 
 // CreateReviewRequest for creating new reviews
@@ -230,14 +230,14 @@ func (r *CreateReviewRequest) Validate() (Base, bool) {
 			Message: "Valid venue ID is required",
 		}, false
 	}
-	
+
 	if r.OverallRating < 1.0 || r.OverallRating > 5.0 {
 		return Base{
 			Code:    InvalidInput,
 			Message: "Rating must be between 1.0 and 5.0",
 		}, false
 	}
-	
+
 	// Validate visit type if provided
 	if r.VisitType != "" {
 		validVisitTypes := []string{"breakfast", "lunch", "dinner", "drinks", "coffee", "event", "takeout"}
@@ -255,14 +255,14 @@ func (r *CreateReviewRequest) Validate() (Base, bool) {
 			}, false
 		}
 	}
-	
+
 	if r.PartySize < 0 || r.PartySize > 50 {
 		return Base{
 			Code:    InvalidInput,
 			Message: "Party size must be between 0 and 50",
 		}, false
 	}
-	
+
 	return Base{}, true
 }
 
@@ -276,7 +276,7 @@ func (r *UpdateReviewRequest) Validate() (Base, bool) {
 			}, false
 		}
 	}
-	
+
 	if r.PartySize != nil {
 		if *r.PartySize < 0 || *r.PartySize > 50 {
 			return Base{
@@ -285,37 +285,37 @@ func (r *UpdateReviewRequest) Validate() (Base, bool) {
 			}, false
 		}
 	}
-	
+
 	return Base{}, true
 }
 
 // ToReview converts CreateReviewRequest to VenueReview model
 func (r *CreateReviewRequest) ToReview() *models.VenueReview {
 	review := &models.VenueReview{
-		VenueID:         r.VenueID,
-		OverallRating:   r.OverallRating,
-		DetailedRatings: r.DetailedRatings,
-		Title:           r.Title,
-		ReviewText:      r.ReviewText,
-		VisitDate:       r.VisitDate,
-		VisitType:       r.VisitType,
-		PartySize:       r.PartySize,
+		VenueID:          r.VenueID,
+		OverallRating:    r.OverallRating,
+		DetailedRatings:  r.DetailedRatings,
+		Title:            r.Title,
+		ReviewText:       r.ReviewText,
+		VisitDate:        r.VisitDate,
+		VisitType:        r.VisitType,
+		PartySize:        r.PartySize,
 		ModerationStatus: "pending",
 	}
-	
+
 	// Convert photos slice to JSON
 	if len(r.Photos) > 0 {
 		photosJSON, _ := json.Marshal(r.Photos)
 		review.Photos = photosJSON
 	}
-	
+
 	return review
 }
 
 // VenueCollectionResponse for venue collections/lists
 type VenueCollectionResponse struct {
-	Collections []models.VenueCollection `json:"collections"`
-	Pagination  PaginationInfo           `json:"pagination"`
+	// Collections []models.VenueCollection `json:"collections"`
+	Pagination PaginationInfo `json:"pagination"`
 }
 
 // CreateCollectionRequest for creating venue collections
@@ -334,22 +334,22 @@ type AddVenueToCollectionRequest struct {
 
 // VotingCampaignResponse for voting campaigns
 type VotingCampaignResponse struct {
-	Campaigns  []models.VotingCampaign `json:"campaigns"`
-	Pagination PaginationInfo          `json:"pagination"`
+	// Campaigns  []models.VotingCampaign `json:"campaigns"`
+	Pagination PaginationInfo `json:"pagination"`
 }
 
 // CreateCampaignRequest for creating voting campaigns
 type CreateCampaignRequest struct {
-	Title                  string     `json:"title" binding:"required,min=1,max=255"`
-	Description            string     `json:"description,omitempty"`
-	CampaignType          string     `json:"campaignType" binding:"required"`
-	CityID                *int64     `json:"cityId,omitempty"`
-	CategoryID            *int64     `json:"categoryId,omitempty"`
-	StartDate             time.Time  `json:"startDate" binding:"required"`
-	EndDate               time.Time  `json:"endDate" binding:"required"`
-	MaxVotesPerUser       int        `json:"maxVotesPerUser"`
+	Title                   string    `json:"title" binding:"required,min=1,max=255"`
+	Description             string    `json:"description,omitempty"`
+	CampaignType            string    `json:"campaignType" binding:"required"`
+	CityID                  *int64    `json:"cityId,omitempty"`
+	CategoryID              *int64    `json:"categoryId,omitempty"`
+	StartDate               time.Time `json:"startDate" binding:"required"`
+	EndDate                 time.Time `json:"endDate" binding:"required"`
+	MaxVotesPerUser         int       `json:"maxVotesPerUser"`
 	AllowMultipleCategories bool      `json:"allowMultipleCategories"`
-	RequireReview         bool       `json:"requireReview"`
+	RequireReview           bool      `json:"requireReview"`
 }
 
 // SubmitCampaignVoteRequest for voting in campaigns
