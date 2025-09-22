@@ -51,13 +51,18 @@ func apiHandler() {
 
 	}
 
+	log.Println("Starting HTTP server...")
 	err := routes.Run()
 	if err != nil {
+		log.Printf("Server error: %v", err)
 		sentry.CaptureException(err)
+		log.Fatal("Failed to start server")
 	}
 }
 
 func main() {
+	log.Println("Starting VoteEngine application...")
 	initSentry()
+	log.Println("Sentry initialized successfully")
 	apiHandler()
 }
