@@ -53,6 +53,11 @@ High-performance voting and venue discovery API backend built with Go and Postgr
 - **Authentication**: Ensures that the user is authenticated using JWT.
 - Other middlewares can be added as well (like logging, etc.)
 
+## Recent Updates
+- Enhanced error handling and logging in main application
+- Improved server startup diagnostics
+- Better Sentry integration for error tracking
+
 ## License
 This project is licensed under the MIT License.
 
