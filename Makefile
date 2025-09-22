@@ -35,7 +35,9 @@ TEST_FILES = $(shell find ./tests -name "*_test.go")
 build:
 	@echo "Building $(APP_NAME)..."
 	@mkdir -p $(BUILD_DIR)
-	@go build -o $(BUILD_DIR)/$(APP_NAME) .
+	@echo "Checking Go modules..."
+	@go mod tidy || (echo "Failed to tidy modules" && exit 1)
+	@go build -o $(BUILD_DIR)/$(APP_NAME) . || (echo "Build failed" && exit 1)
 	@echo "Build complete: $(BUILD_DIR)/$(APP_NAME)"
 
 # Install dependencies

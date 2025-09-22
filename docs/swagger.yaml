@@ -1,4 +1,8 @@
 basePath: /v1
+info:
+  description: VoteEngine voting and venue discovery api with enhanced error handling and improved backend stability
+  title: VoteEngine
+  version: "1.1"
 definitions:
   models.Banner:
     properties:

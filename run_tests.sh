@@ -2,8 +2,10 @@
 
 # Comprehensive test runner for Venue Discovery Platform
 # This script sets up the test environment and runs all tests
+# Enhanced with improved error handling and backend validation
 
 set -e
+set -o pipefail  # Fail on pipe errors
 
 # Colors for output
 RED='\033[0;31m'
@@ -70,8 +72,14 @@ check_dependencies() {
     
     # Check test framework dependencies
     echo "Checking Go test dependencies..."
-    go mod download
-    go mod tidy
+    if ! go mod download; then
+        print_error "Failed to download Go dependencies"
+        exit 1
+    fi
+    if ! go mod tidy; then
+        print_error "Failed to tidy Go modules"
+        exit 1
+    fi
     print_success "Go dependencies updated"
 }
 
